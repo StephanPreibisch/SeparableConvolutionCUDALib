@@ -33,9 +33,8 @@ void setConvolutionKernel_31( float *h_Kernel )
 #define	DEPTH_RESULT_STEPS 8
 #define	DEPTH_HALO_STEPS 1
 
-extern "C" float* convolve_31( float *d_Src, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, bool convolveX, bool convolveY, bool convolveZ, int devCUDA )
+extern "C" void convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, bool convolveX, bool convolveY, bool convolveZ, int devCUDA )
 {
-	float* convResult = NULL;
 	float *d_Input, *d_Output;
 
 	cudaSetDevice( devCUDA );
@@ -68,15 +67,12 @@ extern "C" float* convolve_31( float *d_Src, float *kernelX, float *kernelY, flo
     HANDLE_ERROR( cudaDeviceSynchronize() );
 
     // copy back
-    convResult = new float[ imageW * imageH * imageD ];
-    HANDLE_ERROR( cudaMemcpy(convResult, d_Output, imageW * imageH * imageD * sizeof(float), cudaMemcpyDeviceToHost) );
+    HANDLE_ERROR( cudaMemcpy(image, d_Output, imageW * imageH * imageD * sizeof(float), cudaMemcpyDeviceToHost) );
 
     HANDLE_ERROR( cudaFree(d_Output) );
     HANDLE_ERROR( cudaFree(d_Input) );
 
     cudaDeviceReset();
-
-    return convResult;
 }
 
 __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
