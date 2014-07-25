@@ -1,6 +1,7 @@
 #include "separableConvolution.h"
 #include "cuda.h"
 #include "book.h"
+#include <math.h>
 
 #define KERNEL_RADIUS 16
 #define KERNEL_LENGTH (2 * KERNEL_RADIUS + 1)
@@ -33,8 +34,27 @@ void setConvolutionKernel_31( float *h_Kernel )
 #define	DEPTH_RESULT_STEPS 8
 #define	DEPTH_HALO_STEPS 1
 
-extern "C" void convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, bool convolveX, bool convolveY, bool convolveZ, int devCUDA )
+extern "C" int multipleOfX_31()
 {
+	return imax( DEPTH_BLOCKDIM_X, imax( ROWS_RESULT_STEPS * ROWS_BLOCKDIM_X, COLUMNS_BLOCKDIM_X) );
+}
+extern "C" int multipleOfY_31()
+{
+	return imax( ROWS_BLOCKDIM_Y, COLUMNS_RESULT_STEPS * COLUMNS_BLOCKDIM_Y );
+}
+extern "C" int multipleOfZ_31()
+{
+	return DEPTH_RESULT_STEPS * DEPTH_BLOCKDIM_Z;
+}
+
+extern "C" bool convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, bool convolveX, bool convolveY, bool convolveZ, int devCUDA )
+{
+	// test dimensions
+	if ( imageW % multipleOfX_31() != 0 ||
+		 imageH % multipleOfY_31() != 0 ||
+		 imageD % multipleOfZ_31() != 0 )
+		return false;
+
 	float *d_Input, *d_Output;
 
 	cudaSetDevice( devCUDA );

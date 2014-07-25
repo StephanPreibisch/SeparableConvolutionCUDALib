@@ -28,6 +28,14 @@ static void HandleError( cudaError_t err,
     }
 }
 
+static int imax( int a, int b )
+{
+	if ( a > b )
+		return a;
+	else
+		return b;
+}
+
 #define HANDLE_ERROR_KERNEL HandleError(cudaPeekAtLastError(),__FILE__, __LINE__ )
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))

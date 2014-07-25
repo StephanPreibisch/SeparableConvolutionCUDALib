@@ -11,7 +11,11 @@
 #include "standardCUDAfunctions.h"
 
 // In-place convolution with a maximal kernel diameter of 31
-extern "C" void convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, bool convolveX, bool convolveY, bool convolveZ, int devCUDA );
+extern "C" bool convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, bool convolveX, bool convolveY, bool convolveZ, int devCUDA );
+
+extern "C" int multipleOfX_31();
+extern "C" int multipleOfY_31();
+extern "C" int multipleOfZ_31();
 
 void setConvolutionKernel_31( float *h_Kernel );
 void convolutionX_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD );
