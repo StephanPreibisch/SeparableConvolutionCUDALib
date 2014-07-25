@@ -64,7 +64,7 @@ extern "C" bool convolve_31( float *image, float *kernelX, float *kernelY, float
 	HANDLE_ERROR( cudaMalloc((void **)&d_Output,  imageW * imageH * imageD * sizeof(float)) );
 
     // copy input to graphics card
-	HANDLE_ERROR( cudaMemcpy(d_Input, d_Src, imageW * imageH * imageD * sizeof(float), cudaMemcpyHostToDevice) );
+	HANDLE_ERROR( cudaMemcpy(d_Input, image, imageW * imageH * imageD * sizeof(float), cudaMemcpyHostToDevice) );
 
     if ( convolveX )
     {
@@ -93,6 +93,8 @@ extern "C" bool convolve_31( float *image, float *kernelX, float *kernelY, float
     HANDLE_ERROR( cudaFree(d_Input) );
 
     cudaDeviceReset();
+
+    return true;
 }
 
 __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
