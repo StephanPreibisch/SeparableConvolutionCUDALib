@@ -47,13 +47,13 @@ extern "C" int multipleOfZ_31()
 	return DEPTH_RESULT_STEPS * DEPTH_BLOCKDIM_Z;
 }
 
-extern "C" bool convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, bool convolveX, bool convolveY, bool convolveZ, int devCUDA )
+extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, int convolveX, int convolveY, int convolveZ, int devCUDA )
 {
 	// test dimensions
 	if ( imageW % multipleOfX_31() != 0 ||
 		 imageH % multipleOfY_31() != 0 ||
 		 imageD % multipleOfZ_31() != 0 )
-		return false;
+		return 0;
 
 	float *d_Input, *d_Output;
 
@@ -66,35 +66,64 @@ extern "C" bool convolve_31( float *image, float *kernelX, float *kernelY, float
     // copy input to graphics card
 	HANDLE_ERROR( cudaMemcpy(d_Input, image, imageW * imageH * imageD * sizeof(float), cudaMemcpyHostToDevice) );
 
-    if ( convolveX )
+	int in = 0;
+
+    if ( convolveX > 0 )
     {
+    	printf( "Convolving X." );
 		setConvolutionKernel_31( kernelX );
 		convolutionX_31( d_Output, d_Input, imageW, imageH, imageD );
+		in = 1;
     }
 
-    if ( convolveY )
+    if ( convolveY > 0 )
     {
-		setConvolutionKernel_31( kernelY );
-		convolutionY_31( d_Input, d_Output, imageW, imageH, imageD );
+    	printf( "Convolving Y." );
+    	setConvolutionKernel_31( kernelY );
+
+    	if ( in == 0 )
+    	{
+    		convolutionY_31( d_Output, d_Input, imageW, imageH, imageD );
+    		in = 1;
+    	}
+    	else
+    	{
+    		convolutionY_31( d_Input, d_Output, imageW, imageH, imageD );
+    		in = 0;
+    	}
     }
 
-    if ( convolveZ )
+    if ( convolveZ > 0 )
     {
+    	printf( "Convolving Z." );
 		setConvolutionKernel_31( kernelZ );
-		convolutionZ_31( d_Output, d_Input, imageW, imageH, imageD );
+
+		if ( in == 0 )
+		{
+			convolutionZ_31( d_Output, d_Input, imageW, imageH, imageD );
+			in = 1;
+		}
+		else
+		{
+			convolutionZ_31( d_Input, d_Output, imageW, imageH, imageD );
+			in = 0;
+		}
     }
 
     HANDLE_ERROR( cudaDeviceSynchronize() );
 
     // copy back
-    HANDLE_ERROR( cudaMemcpy(image, d_Output, imageW * imageH * imageD * sizeof(float), cudaMemcpyDeviceToHost) );
+    if ( in == 1 )
+    	HANDLE_ERROR( cudaMemcpy(image, d_Output, imageW * imageH * imageD * sizeof(float), cudaMemcpyDeviceToHost) );
+    else
+    	HANDLE_ERROR( cudaMemcpy(image, d_Input, imageW * imageH * imageD * sizeof(float), cudaMemcpyDeviceToHost) );
 
     HANDLE_ERROR( cudaFree(d_Output) );
     HANDLE_ERROR( cudaFree(d_Input) );
 
     cudaDeviceReset();
 
-    return true;
+    return 1;
 }
 
 __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
