@@ -49,11 +49,17 @@ extern "C" int multipleOfZ_31()
 
 extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, int convolveX, int convolveY, int convolveZ, int devCUDA )
 {
+	printf( "Cuda device %i", devCUDA );
+
 	// test dimensions
 	if ( imageW % multipleOfX_31() != 0 ||
 		 imageH % multipleOfY_31() != 0 ||
 		 imageD % multipleOfZ_31() != 0 )
 		return 0;
+
+	printf( "Convolving X %i", convolveX );
+	printf( "Convolving Y %i", convolveY );
+	printf( "Convolving Z %i", convolveZ );
 
 	float *d_Input, *d_Output;
 
