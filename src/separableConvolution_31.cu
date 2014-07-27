@@ -49,17 +49,21 @@ extern "C" int multipleOfZ_31()
 
 extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, int convolveX, int convolveY, int convolveZ, int devCUDA )
 {
-	printf( "Cuda device %i", devCUDA );
+	fprintf(stderr, "Cuda device: %i\n", devCUDA );
 
 	// test dimensions
 	if ( imageW % multipleOfX_31() != 0 ||
 		 imageH % multipleOfY_31() != 0 ||
 		 imageD % multipleOfZ_31() != 0 )
-		return 0;
+		return 0; //false
 
-	printf( "Convolving X %i", convolveX );
-	printf( "Convolving Y %i", convolveY );
-	printf( "Convolving Z %i", convolveZ );
+	fprintf(stderr, "Convolving X: %i\n", convolveX );
+	fprintf(stderr, "Convolving Y: %i\n", convolveY );
+	fprintf(stderr, "Convolving Z: %i\n", convolveZ );
+
+	fprintf(stderr, "Image Size X: %i\n", imageW );
+	fprintf(stderr, "Image Size Y: %i\n", imageH );
+	fprintf(stderr, "Image Size Z: %i\n", imageD );
 
 	float *d_Input, *d_Output;
 
@@ -74,18 +78,20 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
 
 	int in = 0;
 
-    if ( convolveX > 0 )
+    if ( convolveX != 0 )
     {
-    	printf( "Convolving X." );
+        HANDLE_ERROR( cudaDeviceSynchronize() );
 		setConvolutionKernel_31( kernelX );
+	    HANDLE_ERROR( cudaDeviceSynchronize() );
 		convolutionX_31( d_Output, d_Input, imageW, imageH, imageD );
 		in = 1;
     }
 
-    if ( convolveY > 0 )
+    if ( convolveY != 0 )
     {
-    	printf( "Convolving Y." );
+        HANDLE_ERROR( cudaDeviceSynchronize() );
     	setConvolutionKernel_31( kernelY );
+        HANDLE_ERROR( cudaDeviceSynchronize() );
 
     	if ( in == 0 )
     	{
@@ -99,10 +105,11 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
     	}
     }
 
-    if ( convolveZ > 0 )
+    if ( convolveZ != 0 )
     {
-    	printf( "Convolving Z." );
+        HANDLE_ERROR( cudaDeviceSynchronize() );
 		setConvolutionKernel_31( kernelZ );
+	    HANDLE_ERROR( cudaDeviceSynchronize() );
 
 		if ( in == 0 )
 		{
@@ -129,7 +136,7 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
 
     cudaDeviceReset();
 
-    return 1;
+    return -1; // true
 }
 
 __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
