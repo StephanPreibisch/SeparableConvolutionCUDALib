@@ -49,21 +49,24 @@ extern "C" int multipleOfZ_31()
 
 extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, int convolveX, int convolveY, int convolveZ, int devCUDA )
 {
-	fprintf(stderr, "Cuda device: %i\n", devCUDA );
+	//fprintf(stderr, "Cuda device: %i\n", devCUDA );
 
 	// test dimensions
 	if ( imageW % multipleOfX_31() != 0 ||
 		 imageH % multipleOfY_31() != 0 ||
 		 imageD % multipleOfZ_31() != 0 )
+	{
+		fprintf(stderr, "Image dimensions not compatible. Quitting." );
 		return 0; //false
+	}
 
-	fprintf(stderr, "Convolving X: %i\n", convolveX );
-	fprintf(stderr, "Convolving Y: %i\n", convolveY );
-	fprintf(stderr, "Convolving Z: %i\n", convolveZ );
+	//fprintf(stderr, "Convolving X: %i\n", convolveX );
+	//fprintf(stderr, "Convolving Y: %i\n", convolveY );
+	//fprintf(stderr, "Convolving Z: %i\n", convolveZ );
 
-	fprintf(stderr, "Image Size X: %i\n", imageW );
-	fprintf(stderr, "Image Size Y: %i\n", imageH );
-	fprintf(stderr, "Image Size Z: %i\n", imageD );
+	//fprintf(stderr, "Image Size X: %i\n", imageW );
+	//fprintf(stderr, "Image Size Y: %i\n", imageH );
+	//fprintf(stderr, "Image Size Z: %i\n", imageD );
 
 	float *d_Input, *d_Output;
 
@@ -157,7 +160,7 @@ __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     for (int i = ROWS_HALO_STEPS; i < ROWS_HALO_STEPS + ROWS_RESULT_STEPS; i++)
     {
-        s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = d_Src[i * ROWS_BLOCKDIM_X];
+        s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : 0;//d_Src[i * ROWS_BLOCKDIM_X];
     }
 
     // Load left halo
@@ -192,7 +195,10 @@ __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
             sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X + j];
         }
 
-        d_Dst[i * ROWS_BLOCKDIM_X] = sum;
+        if (imageW - baseX > i * ROWS_BLOCKDIM_X)
+        {
+        	d_Dst[i * ROWS_BLOCKDIM_X] = sum;
+        }
     }
 }
 
@@ -213,7 +219,7 @@ __global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     for (int i = COLUMNS_HALO_STEPS; i < COLUMNS_HALO_STEPS + COLUMNS_RESULT_STEPS; i++)
     {
-        s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = d_Src[i * COLUMNS_BLOCKDIM_Y * imageW];
+        s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : 0;//d_Src[i * COLUMNS_BLOCKDIM_Y * imageW];
     }
 
     //Upper halo
@@ -246,7 +252,10 @@ __global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
             sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y + j];
         }
 
-        d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = sum;
+        if (imageH - baseY > i * COLUMNS_BLOCKDIM_Y)
+        {
+        	d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = sum;
+        }
     }
 }
 
@@ -268,7 +277,7 @@ __global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     for (int i = DEPTH_HALO_STEPS; i < DEPTH_HALO_STEPS + DEPTH_RESULT_STEPS; i++)
     {
-        s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z] = d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH];
+        s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z] = (imageD - baseZ > i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : 0;//d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH];
     }
 
     //Upper halo
@@ -301,7 +310,10 @@ __global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
             sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z + j];
         }
 
-        d_Dst[i * DEPTH_BLOCKDIM_Z * imageW * imageH] = sum;
+        if (imageD - baseZ > i * DEPTH_BLOCKDIM_Z)
+        {
+        	d_Dst[i * DEPTH_BLOCKDIM_Z * imageW * imageH] = sum;
+        }
     }
 }
 
