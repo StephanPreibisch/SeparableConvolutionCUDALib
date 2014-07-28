@@ -22,7 +22,9 @@ void convolutionX(
     int imageW,
     int imageH,
     int imageD,
-    int kernelR
+    int kernelR,
+    int outofbounds,
+    float outofboundsvalue
 )
 {
 	for (int z = 0; z < imageD; z++)
@@ -35,8 +37,24 @@ void convolutionX(
 				{
 					int d = x + k;
 
-					if (d >= 0 && d < imageW)
+					if ( d < 0 )
+					{
+						if ( outofbounds == 1 )
+							sum += outofboundsvalue * h_Kernel[kernelR - k];
+						else if ( outofbounds == 2 )
+							sum += h_Src[z * imageW * imageH + y * imageW + imageW - 1] * h_Kernel[kernelR - k];
+					}
+					else if ( d >= imageW )
+					{
+						if ( outofbounds == 1 )
+							sum += outofboundsvalue * h_Kernel[kernelR - k];
+						else if ( outofbounds == 2 )
+							sum += h_Src[z * imageW * imageH + y * imageW ] * h_Kernel[kernelR - k];
+					}
+					else
+					{
 						sum += h_Src[z * imageW * imageH + y * imageW + d] * h_Kernel[kernelR - k];
+					}
 				}
 
 				h_Dst[z * imageW * imageH + y * imageW + x] = sum;
@@ -50,7 +68,9 @@ void convolutionY(
     int imageW,
     int imageH,
     int imageD,
-    int kernelR
+    int kernelR,
+    int outofbounds,
+    float outofboundsvalue
 )
 {
 	for (int z = 0; z < imageD; z++)
@@ -63,8 +83,24 @@ void convolutionY(
 				{
 					int d = y + k;
 
-					if (d >= 0 && d < imageH)
+					if ( d < 0 )
+					{
+						if ( outofbounds == 1 )
+							sum += outofboundsvalue * h_Kernel[kernelR - k];
+						else if ( outofbounds == 2 )
+							sum += h_Src[z * imageW * imageH + x] * h_Kernel[kernelR - k];
+					}
+					else if ( d >= imageH )
+					{
+						if ( outofbounds == 1 )
+							sum += outofboundsvalue * h_Kernel[kernelR - k];
+						else if ( outofbounds == 2 )
+							sum += h_Src[z * imageW * imageH + (imageH - 1) * imageW + x] * h_Kernel[kernelR - k];
+					}
+					else
+					{
 						sum += h_Src[z * imageW * imageH + d * imageW + x] * h_Kernel[kernelR - k];
+					}
 				}
 
 				h_Dst[z * imageW * imageH + y * imageW + x] = sum;
@@ -78,7 +114,9 @@ void convolutionZ(
     int imageW,
     int imageH,
     int imageD,
-    int kernelR
+    int kernelR,
+    int outofbounds,
+    float outofboundsvalue
 )
 {
 	for (int z = 0; z < imageD; z++)
@@ -91,15 +129,31 @@ void convolutionZ(
 				{
 					int d = z + k;
 
-					if (d >= 0 && d < imageD)
+					if ( d < 0 )
+					{
+						if ( outofbounds == 1 )
+							sum += outofboundsvalue * h_Kernel[kernelR - k];
+						else if ( outofbounds == 2 )
+							sum += h_Src[y * imageW + x] * h_Kernel[kernelR - k];
+					}
+					else if ( d >= imageD )
+					{
+						if ( outofbounds == 1 )
+							sum += outofboundsvalue * h_Kernel[kernelR - k];
+						else if ( outofbounds == 2 )
+							sum += h_Src[(imageD-1) * imageW * imageH + y * imageW + x] * h_Kernel[kernelR - k];
+					}
+					else
+					{
 						sum += h_Src[d * imageW * imageH + y * imageW + x] * h_Kernel[kernelR - k];
+					}
 				}
 
 				h_Dst[z * imageW * imageH + y * imageW + x] = sum;
 			}
 }
 
-extern "C" void convolutionCPU( float *image, float *kernelX, float *kernelY, float *kernelZ, int kernelRX, int kernelRY, int kernelRZ, int imageW, int imageH, int imageD )
+extern "C" void convolutionCPU( float *image, float *kernelX, float *kernelY, float *kernelZ, int kernelRX, int kernelRY, int kernelRZ, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
 	float *h_Buffer;
 
@@ -108,17 +162,17 @@ extern "C" void convolutionCPU( float *image, float *kernelX, float *kernelY, fl
 	for ( int i = 0; i < kernelRX; ++i )
 		fprintf(stderr, "kernel x: %.5f\n", kernelX[ i ] );
 
-    convolutionX( h_Buffer, image, kernelX, imageW, imageH, imageD, kernelRX/2 );
+    convolutionX( h_Buffer, image, kernelX, imageW, imageH, imageD, kernelRX/2, outofbounds, outofboundsvalue );
 
 	for ( int i = 0; i < kernelRY; ++i )
 		fprintf(stderr, "kernel y: %.5f\n", kernelY[ i ] );
 
-    convolutionY( image, h_Buffer, kernelY, imageW, imageH, imageD, kernelRY/2 );
+    convolutionY( image, h_Buffer, kernelY, imageW, imageH, imageD, kernelRY/2, outofbounds, outofboundsvalue );
 
 	for ( int i = 0; i < kernelRZ; ++i )
 		fprintf(stderr, "kernel z: %.5f\n", kernelZ[ i ] );
 
-	convolutionZ( h_Buffer, image, kernelZ, imageW, imageH, imageD, kernelRZ/2 );
+	convolutionZ( h_Buffer, image, kernelZ, imageW, imageH, imageD, kernelRZ/2, outofbounds, outofboundsvalue );
 
 	memcpy( image, h_Buffer, imageW * imageH * imageD * sizeof(float) );
 

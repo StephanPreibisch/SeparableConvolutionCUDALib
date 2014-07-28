@@ -47,7 +47,7 @@ extern "C" int multipleOfZ_31()
 	return DEPTH_RESULT_STEPS * DEPTH_BLOCKDIM_Z;
 }
 
-extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, int convolveX, int convolveY, int convolveZ, int devCUDA )
+extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, int convolveX, int convolveY, int convolveZ, int outofbounds, float outofboundsvalue, int devCUDA )
 {
 	//fprintf(stderr, "Cuda device: %i\n", devCUDA );
 
@@ -77,7 +77,7 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
     if ( convolveX != 0 )
     {
 		setConvolutionKernel_31( kernelX );
-	    convolutionX_31( d_Output, d_Input, imageW, imageH, imageD );
+	    convolutionX_31( d_Output, d_Input, imageW, imageH, imageD, outofbounds, outofboundsvalue );
 		in = 1;
     }
 
@@ -87,12 +87,12 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
 
     	if ( in == 0 )
     	{
-    		convolutionY_31( d_Output, d_Input, imageW, imageH, imageD );
+    		convolutionY_31( d_Output, d_Input, imageW, imageH, imageD, outofbounds, outofboundsvalue );
     		in = 1;
     	}
     	else
     	{
-    		convolutionY_31( d_Input, d_Output, imageW, imageH, imageD );
+    		convolutionY_31( d_Input, d_Output, imageW, imageH, imageD, outofbounds, outofboundsvalue );
     		in = 0;
     	}
     }
@@ -103,12 +103,12 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
 
 		if ( in == 0 )
 		{
-			convolutionZ_31( d_Output, d_Input, imageW, imageH, imageD );
+			convolutionZ_31( d_Output, d_Input, imageW, imageH, imageD, outofbounds, outofboundsvalue );
 			in = 1;
 		}
 		else
 		{
-			convolutionZ_31( d_Input, d_Output, imageW, imageH, imageD );
+			convolutionZ_31( d_Input, d_Output, imageW, imageH, imageD, outofbounds, outofboundsvalue );
 			in = 0;
 		}
     }
@@ -129,7 +129,7 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
     return -1; // true
 }
 
-__global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
+__global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
     __shared__ float s_Data[ROWS_BLOCKDIM_Y][(ROWS_RESULT_STEPS + 2 * ROWS_HALO_STEPS) * ROWS_BLOCKDIM_X];
 
@@ -147,7 +147,12 @@ __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     for (int i = ROWS_HALO_STEPS; i < ROWS_HALO_STEPS + ROWS_RESULT_STEPS; i++)
     {
-        s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : 0;//d_Src[i * ROWS_BLOCKDIM_X];
+    	if ( outofbounds == 0 )
+    		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : 0;
+    	else if ( outofboundsvalue == 1 )
+    		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : outofboundsvalue;
+    	else
+    		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : d_Src[ imageW - baseX - 1 ];
     }
 
     // Load left halo
@@ -156,7 +161,12 @@ __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     for (int i = 0; i < ROWS_HALO_STEPS; i++)
     {
-        s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (baseX >= -i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : 0;
+    	if ( outofbounds == 0 )
+    		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (baseX >= -i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : 0;
+    	else if ( outofboundsvalue == 1 )
+    		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (baseX >= -i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : outofboundsvalue;
+    	else
+    		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (baseX >= -i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : d_Src[ ROWS_BLOCKDIM_X * ROWS_HALO_STEPS ];
     }
 
     //Load right halo
@@ -164,7 +174,12 @@ __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     for (int i = ROWS_HALO_STEPS + ROWS_RESULT_STEPS; i < ROWS_HALO_STEPS + ROWS_RESULT_STEPS + ROWS_HALO_STEPS; i++)
     {
-        s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : 0;
+    	if ( outofbounds == 0 )
+    		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : 0;
+    	else if ( outofboundsvalue == 1 )
+    		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : outofboundsvalue;
+    	else
+    		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : d_Src[ imageW - baseX - 1 ];
     }
 
     //Compute and store results
@@ -189,7 +204,7 @@ __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     }
 }
 
-__global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
+__global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
     __shared__ float s_Data[COLUMNS_BLOCKDIM_X][(COLUMNS_RESULT_STEPS + 2 * COLUMNS_HALO_STEPS) * COLUMNS_BLOCKDIM_Y + 1];
 
@@ -206,7 +221,12 @@ __global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     for (int i = COLUMNS_HALO_STEPS; i < COLUMNS_HALO_STEPS + COLUMNS_RESULT_STEPS; i++)
     {
-        s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : 0;//d_Src[i * COLUMNS_BLOCKDIM_Y * imageW];
+    	if ( outofbounds == 0 )
+    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : 0;
+    	else if ( outofbounds == 1 )
+    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : outofboundsvalue;
+    	else
+    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : d_Src[ (imageW - baseY - 1)* imageW ];
     }
 
     //Upper halo
@@ -214,7 +234,12 @@ __global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     for (int i = 0; i < COLUMNS_HALO_STEPS; i++)
     {
-        s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = (baseY >= -i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : 0;
+    	if ( outofbounds == 0 )
+    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = (baseY >= -i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : 0;
+    	else if ( outofbounds == 1 )
+    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = (baseY >= -i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : outofboundsvalue;
+    	else
+    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = (baseY >= -i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : d_Src[ COLUMNS_BLOCKDIM_Y * ROWS_HALO_STEPS * imageW ];
     }
 
     //Lower halo
@@ -222,7 +247,12 @@ __global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     for (int i = COLUMNS_HALO_STEPS + COLUMNS_RESULT_STEPS; i < COLUMNS_HALO_STEPS + COLUMNS_RESULT_STEPS + COLUMNS_HALO_STEPS; i++)
     {
-        s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y]= (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : 0;
+    	if ( outofbounds == 0 )
+    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y]= (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : 0;
+    	else if ( outofbounds == 1 )
+    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y]= (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : outofboundsvalue;
+    	else
+    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y]= (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : d_Src[ (imageW - baseY - 1)* imageW ];
     }
 
     //Compute and store results
@@ -246,7 +276,7 @@ __global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     }
 }
 
-__global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
+__global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
 	// here it is [x][z], we leave out y as it has a size of 1
     __shared__ float s_Data[DEPTH_BLOCKDIM_X][(DEPTH_RESULT_STEPS + 2 * DEPTH_HALO_STEPS) * DEPTH_BLOCKDIM_Z + 1];
@@ -264,7 +294,12 @@ __global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     for (int i = DEPTH_HALO_STEPS; i < DEPTH_HALO_STEPS + DEPTH_RESULT_STEPS; i++)
     {
-        s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z] = (imageD - baseZ > i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : 0;//d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH];
+    	if ( outofbounds == 0 )
+    		s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z] = (imageD - baseZ > i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : 0;
+    	else if ( outofbounds == 1 )
+    		s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z] = (imageD - baseZ > i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : outofboundsvalue;
+    	else
+    		s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z] = (imageD - baseZ > i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : d_Src[ (imageD - baseZ - 1)*imageW*imageH ];
     }
 
     //Upper halo
@@ -272,7 +307,12 @@ __global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     for (int i = 0; i < DEPTH_HALO_STEPS; i++)
     {
-        s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z] = (baseZ >= -i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : 0;
+    	if ( outofbounds == 0 )
+    		s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z] = (baseZ >= -i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : 0;
+    	else if ( outofbounds == 1 )
+    		s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z] = (baseZ >= -i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : outofboundsvalue;
+    	else
+    		s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z] = (baseZ >= -i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : d_Src[ DEPTH_BLOCKDIM_Z * ROWS_HALO_STEPS * imageW * imageH ];
     }
 
     //Lower halo
@@ -280,7 +320,12 @@ __global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     for (int i = DEPTH_HALO_STEPS + DEPTH_RESULT_STEPS; i < DEPTH_HALO_STEPS + DEPTH_RESULT_STEPS + DEPTH_HALO_STEPS; i++)
     {
-        s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z]= (imageD - baseZ > i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : 0;
+    	if ( outofbounds == 0 )
+    		s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z]= (imageD - baseZ > i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : 0;
+    	else if ( outofbounds == 1 )
+    		s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z]= (imageD - baseZ > i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : outofboundsvalue;
+    	else
+    		s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z]= (imageD - baseZ > i * DEPTH_BLOCKDIM_Z) ? d_Src[i * DEPTH_BLOCKDIM_Z * imageW * imageH] : d_Src[ (imageD - baseZ - 1)*imageW*imageH ];
     }
 
     //Compute and store results
@@ -304,26 +349,26 @@ __global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     }
 }
 
-void convolutionX_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
+void convolutionX_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
     dim3 blocks(imax(imageW / (ROWS_RESULT_STEPS * ROWS_BLOCKDIM_X), 1), imax(imageH / ROWS_BLOCKDIM_Y, 1), imageD);
     dim3 threads(ROWS_BLOCKDIM_X, ROWS_BLOCKDIM_Y, 1);
 
-    convolutionX_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD );
+    convolutionX_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD, outofbounds, outofboundsvalue );
 }
 
-void convolutionY_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
+void convolutionY_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
     dim3 blocks(imageW / COLUMNS_BLOCKDIM_X, imax(imageH / (COLUMNS_RESULT_STEPS * COLUMNS_BLOCKDIM_Y), 1), imageD);
     dim3 threads(COLUMNS_BLOCKDIM_X, COLUMNS_BLOCKDIM_Y, 1);
 
-    convolutionY_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD );
+    convolutionY_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD, outofbounds, outofboundsvalue );
 }
 
-void convolutionZ_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
+void convolutionZ_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
     dim3 blocks(imax(imageW / DEPTH_BLOCKDIM_X, 1), imageH, imax(imageD/ (DEPTH_RESULT_STEPS * DEPTH_BLOCKDIM_Z), 1));
     dim3 threads(DEPTH_BLOCKDIM_X, 1, DEPTH_BLOCKDIM_Z);
 
-    convolutionZ_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD );
+    convolutionZ_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD, outofbounds, outofboundsvalue );
 }
