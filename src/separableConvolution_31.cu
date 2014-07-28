@@ -3,7 +3,7 @@
 #include "book.h"
 #include <math.h>
 
-#define KERNEL_RADIUS 16
+#define KERNEL_RADIUS 15
 #define KERNEL_LENGTH (2 * KERNEL_RADIUS + 1)
 
 __constant__ float c_Kernel[ KERNEL_LENGTH ];
