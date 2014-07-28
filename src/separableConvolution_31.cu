@@ -81,6 +81,8 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
 		in = 1;
     }
 
+    HANDLE_ERROR( cudaDeviceSynchronize() );
+
     if ( convolveY != 0 )
     {
     	setConvolutionKernel_31( kernelY );
@@ -96,6 +98,8 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
     		in = 0;
     	}
     }
+
+    HANDLE_ERROR( cudaDeviceSynchronize() );
 
     if ( convolveZ != 0 )
     {
@@ -226,7 +230,7 @@ __global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     	else if ( outofbounds == 1 )
     		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : outofboundsvalue;
     	else
-    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : d_Src[ (imageW - baseY - 1)* imageW ];
+    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y] = (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : d_Src[ (imageH - baseY - 1)* imageW ];
     }
 
     //Upper halo
@@ -252,7 +256,7 @@ __global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     	else if ( outofbounds == 1 )
     		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y]= (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : outofboundsvalue;
     	else
-    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y]= (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : d_Src[ (imageW - baseY - 1)* imageW ];
+    		s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y]= (imageH - baseY > i * COLUMNS_BLOCKDIM_Y) ? d_Src[i * COLUMNS_BLOCKDIM_Y * imageW] : d_Src[ (imageH - baseY - 1)* imageW ];
     }
 
     //Compute and store results
