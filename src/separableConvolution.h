@@ -17,6 +17,8 @@ extern "C" int multipleOfX_31();
 extern "C" int multipleOfY_31();
 extern "C" int multipleOfZ_31();
 
+extern "C" void convolutionCPU( float *image, float *kernelX, float *kernelY, float *kernelZ, int kernelRX, int kernelRY, int kernelRZ, int imageW, int imageH, int imageD );
+
 void setConvolutionKernel_31( float *h_Kernel );
 void convolutionX_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD );
 void convolutionY_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD );
