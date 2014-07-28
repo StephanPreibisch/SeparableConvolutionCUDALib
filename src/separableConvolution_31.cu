@@ -51,17 +51,6 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
 {
 	//fprintf(stderr, "Cuda device: %i\n", devCUDA );
 
-	// test dimensions
-	/*
-	if ( imageW % multipleOfX_31() != 0 ||
-		 imageH % multipleOfY_31() != 0 ||
-		 imageD % multipleOfZ_31() != 0 )
-	{
-		fprintf(stderr, "Image dimensions not compatible. Quitting." );
-		return 0; //false
-	}
-	*/
-
 	//fprintf(stderr, "Convolving X: %i\n", convolveX );
 	//fprintf(stderr, "Convolving Y: %i\n", convolveY );
 	//fprintf(stderr, "Convolving Z: %i\n", convolveZ );
@@ -88,8 +77,8 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
         HANDLE_ERROR( cudaDeviceSynchronize() );
 		setConvolutionKernel_31( kernelX );
 	    HANDLE_ERROR( cudaDeviceSynchronize() );
-	    fprintf(stderr, "Convolving X" );
-		convolutionX_31( d_Output, d_Input, imageW, imageH, imageD );
+
+	    convolutionX_31( d_Output, d_Input, imageW, imageH, imageD );
 		in = 1;
     }
 
@@ -99,7 +88,6 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
     	setConvolutionKernel_31( kernelY );
         HANDLE_ERROR( cudaDeviceSynchronize() );
 
-        fprintf(stderr, "Convolving Y" );
     	if ( in == 0 )
     	{
     		convolutionY_31( d_Output, d_Input, imageW, imageH, imageD );
@@ -118,7 +106,6 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
 		setConvolutionKernel_31( kernelZ );
 	    HANDLE_ERROR( cudaDeviceSynchronize() );
 
-	    fprintf(stderr, "Convolving Z" );
 		if ( in == 0 )
 		{
 			convolutionZ_31( d_Output, d_Input, imageW, imageH, imageD );
@@ -324,7 +311,7 @@ __global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
 void convolutionX_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
 {
-    dim3 blocks( imax(imageW / (ROWS_RESULT_STEPS * ROWS_BLOCKDIM_X), 1), imax(imageH / ROWS_BLOCKDIM_Y, 1), imageD);
+    dim3 blocks(imax(imageW / (ROWS_RESULT_STEPS * ROWS_BLOCKDIM_X), 1), imax(imageH / ROWS_BLOCKDIM_Y, 1), imageD);
     dim3 threads(ROWS_BLOCKDIM_X, ROWS_BLOCKDIM_Y, 1);
 
     convolutionX_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD );
@@ -340,7 +327,7 @@ void convolutionY_31( float *d_Dst, float *d_Src, int imageW, int imageH, int im
 
 void convolutionZ_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
 {
-    dim3 blocks( imax(imageW / DEPTH_BLOCKDIM_X, 1), imageH, imax(imageD/ (DEPTH_RESULT_STEPS * DEPTH_BLOCKDIM_Z), 1) );
+    dim3 blocks(imax(imageW / DEPTH_BLOCKDIM_X, 1), imageH, imax(imageD/ (DEPTH_RESULT_STEPS * DEPTH_BLOCKDIM_Z), 1));
     dim3 threads(DEPTH_BLOCKDIM_X, 1, DEPTH_BLOCKDIM_Z);
 
     convolutionZ_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD );
