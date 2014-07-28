@@ -70,23 +70,20 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
     // copy input to graphics card
 	HANDLE_ERROR( cudaMemcpy(d_Input, image, imageW * imageH * imageD * sizeof(float), cudaMemcpyHostToDevice) );
 
+    HANDLE_ERROR( cudaDeviceSynchronize() );
+
 	int in = 0;
 
     if ( convolveX != 0 )
     {
-        HANDLE_ERROR( cudaDeviceSynchronize() );
 		setConvolutionKernel_31( kernelX );
-	    HANDLE_ERROR( cudaDeviceSynchronize() );
-
 	    convolutionX_31( d_Output, d_Input, imageW, imageH, imageD );
 		in = 1;
     }
 
     if ( convolveY != 0 )
     {
-        HANDLE_ERROR( cudaDeviceSynchronize() );
     	setConvolutionKernel_31( kernelY );
-        HANDLE_ERROR( cudaDeviceSynchronize() );
 
     	if ( in == 0 )
     	{
@@ -102,9 +99,7 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
 
     if ( convolveZ != 0 )
     {
-        HANDLE_ERROR( cudaDeviceSynchronize() );
 		setConvolutionKernel_31( kernelZ );
-	    HANDLE_ERROR( cudaDeviceSynchronize() );
 
 		if ( in == 0 )
 		{
