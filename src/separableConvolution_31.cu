@@ -142,7 +142,7 @@ __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     const int baseZ = blockIdx.z;
 
     const int firstPixelInLine = ROWS_BLOCKDIM_X * ROWS_HALO_STEPS - threadIdx.x;
-    const int lastPixelInLine = imageW - (baseX - threadIdx.x) - 1;
+    const int lastPixelInLine = imageW - baseX - 1;
 
     // set the input and output arrays to the right offset (actually the output is not at the right offset, but this is corrected later)
     d_Src += baseZ * imageH * imageW + baseY * imageW + baseX;
