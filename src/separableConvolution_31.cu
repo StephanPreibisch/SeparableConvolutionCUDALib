@@ -221,7 +221,7 @@ __global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     const int baseZ = blockIdx.z;
 
     const int firstPixelInLine = (COLUMNS_BLOCKDIM_Y * COLUMNS_HALO_STEPS - threadIdx.y) * imageW;
-    const int lastPixelInLine = (imageH - (baseY - threadIdx.y) - 1)* imageW;
+    const int lastPixelInLine = (imageH - baseY - 1) * imageW;
 
     d_Src += baseZ * imageH * imageW + baseY * imageW + baseX;
     d_Dst += baseZ * imageH * imageW + baseY * imageW + baseX;
@@ -297,7 +297,7 @@ __global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     const int baseZ = (blockIdx.z * DEPTH_RESULT_STEPS - DEPTH_HALO_STEPS) * DEPTH_BLOCKDIM_Z + threadIdx.z;
 
     const int firstPixelInLine = (DEPTH_BLOCKDIM_Z * DEPTH_HALO_STEPS - threadIdx.z) * imageW * imageH;
-    const int lastPixelInLine = (imageD - (baseZ - threadIdx.z) - 1) * imageW * imageH;
+    const int lastPixelInLine = (imageD - baseZ - 1) * imageW * imageH;
 
     d_Src += baseZ * imageH * imageW + baseY * imageW + baseX;
     d_Dst += baseZ * imageH * imageW + baseY * imageW + baseX;
