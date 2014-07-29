@@ -70,11 +70,11 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
     // copy input to graphics card
 	HANDLE_ERROR( cudaMemcpy(d_Input, image, imageW * imageH * imageD * sizeof(float), cudaMemcpyHostToDevice) );
 
-	// FOR DEBUG ONLY!
-	float *tmp;
-	tmp = (float *)malloc(imageW * imageH * imageD * sizeof(float));
-	memset(tmp, 0, imageW * imageH * imageD * sizeof(float));
-	HANDLE_ERROR( cudaMemcpy(d_Output, tmp, imageW * imageH * imageD * sizeof(float), cudaMemcpyHostToDevice) );
+	// FOR DEBUG ONLY! set the output to zero
+	//float *tmp;
+	//tmp = (float *)malloc(imageW * imageH * imageD * sizeof(float));
+	//memset(tmp, 0, imageW * imageH * imageD * sizeof(float));
+	//HANDLE_ERROR( cudaMemcpy(d_Output, tmp, imageW * imageH * imageD * sizeof(float), cudaMemcpyHostToDevice) );
 	// FOR DEBUG ONLY!
 
     HANDLE_ERROR( cudaDeviceSynchronize() );
