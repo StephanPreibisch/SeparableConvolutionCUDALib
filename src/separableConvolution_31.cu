@@ -153,7 +153,7 @@ __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     {
     	if ( outofbounds == 0 )
     		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : 0;
-    	else if ( outofboundsvalue == 1 )
+    	else if ( outofbounds == 1 )
     		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : outofboundsvalue;
     	else
     		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : d_Src[ imageW - baseX - 1 ];
@@ -167,7 +167,7 @@ __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     {
     	if ( outofbounds == 0 )
     		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (baseX >= -i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : 0;
-    	else if ( outofboundsvalue == 1 )
+    	else if ( outofbounds == 1 )
     		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (baseX >= -i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : outofboundsvalue;
     	else
     		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (baseX >= -i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : d_Src[ ROWS_BLOCKDIM_X * ROWS_HALO_STEPS ];
@@ -180,7 +180,7 @@ __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     {
     	if ( outofbounds == 0 )
     		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : 0;
-    	else if ( outofboundsvalue == 1 )
+    	else if ( outofbounds == 1 )
     		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : outofboundsvalue;
     	else
     		s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X] = (imageW - baseX > i * ROWS_BLOCKDIM_X) ? d_Src[i * ROWS_BLOCKDIM_X] : d_Src[ imageW - baseX - 1 ];
