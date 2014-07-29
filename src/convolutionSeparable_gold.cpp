@@ -42,14 +42,14 @@ void convolutionX(
 						if ( outofbounds == 1 )
 							sum += outofboundsvalue * h_Kernel[kernelR - k];
 						else if ( outofbounds == 2 )
-							sum += h_Src[z * imageW * imageH + y * imageW + imageW - 1] * h_Kernel[kernelR - k];
+							sum += h_Src[z * imageW * imageH + y * imageW ] * h_Kernel[kernelR - k];
 					}
 					else if ( d >= imageW )
 					{
 						if ( outofbounds == 1 )
 							sum += outofboundsvalue * h_Kernel[kernelR - k];
 						else if ( outofbounds == 2 )
-							sum += h_Src[z * imageW * imageH + y * imageW ] * h_Kernel[kernelR - k];
+							sum += h_Src[z * imageW * imageH + y * imageW + imageW - 1 ] * h_Kernel[kernelR - k];
 					}
 					else
 					{
