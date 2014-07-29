@@ -159,18 +159,18 @@ extern "C" void convolutionCPU( float *image, float *kernelX, float *kernelY, fl
 
 	h_Buffer  = (float *)malloc(imageW * imageH * imageD * sizeof(float));
 
-	for ( int i = 0; i < kernelRX; ++i )
-		fprintf(stderr, "kernel x: %.5f\n", kernelX[ i ] );
+	//for ( int i = 0; i < kernelRX; ++i )
+	//	fprintf(stderr, "kernel x: %.5f\n", kernelX[ i ] );
 
     convolutionX( h_Buffer, image, kernelX, imageW, imageH, imageD, kernelRX/2, outofbounds, outofboundsvalue );
 
-	for ( int i = 0; i < kernelRY; ++i )
-		fprintf(stderr, "kernel y: %.5f\n", kernelY[ i ] );
+	//for ( int i = 0; i < kernelRY; ++i )
+	//	fprintf(stderr, "kernel y: %.5f\n", kernelY[ i ] );
 
     convolutionY( image, h_Buffer, kernelY, imageW, imageH, imageD, kernelRY/2, outofbounds, outofboundsvalue );
 
-	for ( int i = 0; i < kernelRZ; ++i )
-		fprintf(stderr, "kernel z: %.5f\n", kernelZ[ i ] );
+	//for ( int i = 0; i < kernelRZ; ++i )
+	//	fprintf(stderr, "kernel z: %.5f\n", kernelZ[ i ] );
 
 	convolutionZ( h_Buffer, image, kernelZ, imageW, imageH, imageD, kernelRZ/2, outofbounds, outofboundsvalue );
 
