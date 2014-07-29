@@ -306,7 +306,11 @@ __global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
 void convolutionX_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
 {
-    dim3 blocks(imax(imageW / (ROWS_RESULT_STEPS * ROWS_BLOCKDIM_X), 1), imax(imageH / ROWS_BLOCKDIM_Y, 1), imageD);
+	int blocksX = imageW / (ROWS_RESULT_STEPS * ROWS_BLOCKDIM_X) + imin( 1, imageW % (ROWS_RESULT_STEPS * ROWS_BLOCKDIM_X) );
+	int blocksY = imageH / ROWS_BLOCKDIM_Y + imin( 1, imageH % ROWS_BLOCKDIM_Y );
+	int blocksZ = imageD;
+
+    dim3 blocks(blocksX, blocksY, blocksZ);
     dim3 threads(ROWS_BLOCKDIM_X, ROWS_BLOCKDIM_Y, 1);
 
     convolutionX_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD );
@@ -314,7 +318,11 @@ void convolutionX_31( float *d_Dst, float *d_Src, int imageW, int imageH, int im
 
 void convolutionY_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
 {
-    dim3 blocks(imageW / COLUMNS_BLOCKDIM_X, imax(imageH / (COLUMNS_RESULT_STEPS * COLUMNS_BLOCKDIM_Y), 1), imageD);
+	int blocksX = imageW / COLUMNS_BLOCKDIM_X + imin( 1, imageW % COLUMNS_BLOCKDIM_X );
+	int blocksY = imageH / (COLUMNS_RESULT_STEPS * COLUMNS_BLOCKDIM_Y) + imin( 1, imageH % (COLUMNS_RESULT_STEPS * COLUMNS_BLOCKDIM_Y) );
+	int blocksZ = imageD;
+
+    dim3 blocks(blocksX, blocksY, blocksZ);
     dim3 threads(COLUMNS_BLOCKDIM_X, COLUMNS_BLOCKDIM_Y, 1);
 
     convolutionY_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD );
@@ -322,7 +330,11 @@ void convolutionY_31( float *d_Dst, float *d_Src, int imageW, int imageH, int im
 
 void convolutionZ_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD )
 {
-    dim3 blocks(imax(imageW / DEPTH_BLOCKDIM_X, 1), imageH, imax(imageD/ (DEPTH_RESULT_STEPS * DEPTH_BLOCKDIM_Z), 1));
+	int blocksX = imageW / DEPTH_BLOCKDIM_X + imin(1, imageW % DEPTH_BLOCKDIM_X);
+	int blocksY = imageH;
+	int blocksZ = imageD / (DEPTH_RESULT_STEPS * DEPTH_BLOCKDIM_Z) + imin( 1, imageD % (DEPTH_RESULT_STEPS * DEPTH_BLOCKDIM_Z) );
+
+    dim3 blocks(blocksX, blocksY, blocksZ);
     dim3 threads(DEPTH_BLOCKDIM_X, 1, DEPTH_BLOCKDIM_Z);
 
     convolutionZ_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD );

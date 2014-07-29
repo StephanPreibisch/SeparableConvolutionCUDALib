@@ -36,6 +36,14 @@ static int imax( int a, int b )
 		return b;
 }
 
+static int imin( int a, int b )
+{
+	if ( a > b )
+		return b;
+	else
+		return a;
+}
+
 #define HANDLE_ERROR_KERNEL HandleError(cudaPeekAtLastError(),__FILE__, __LINE__ )
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
