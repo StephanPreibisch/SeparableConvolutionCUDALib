@@ -70,6 +70,13 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
     // copy input to graphics card
 	HANDLE_ERROR( cudaMemcpy(d_Input, image, imageW * imageH * imageD * sizeof(float), cudaMemcpyHostToDevice) );
 
+	// FOR DEBUG ONLY!
+	float *tmp;
+	tmp = (float *)malloc(imageW * imageH * imageD * sizeof(float));
+	memset(tmp, 0, imageW * imageH * imageD * sizeof(float));
+	HANDLE_ERROR( cudaMemcpy(d_Output, tmp, imageW * imageH * imageD * sizeof(float), cudaMemcpyHostToDevice) );
+	// FOR DEBUG ONLY!
+
     HANDLE_ERROR( cudaDeviceSynchronize() );
 
 	int in = 0;
@@ -191,23 +198,26 @@ __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     //Compute and store results
     __syncthreads();
-#pragma unroll
+
+    // this pixel is not part of the image and does not need to be convolved
+    if ( baseY >= imageH )
+    	return;
 
     for (int i = ROWS_HALO_STEPS; i < ROWS_HALO_STEPS + ROWS_RESULT_STEPS; i++)
     {
-        float sum = 0;
-
-#pragma unroll
-
-        for (int j = -KERNEL_RADIUS; j <= KERNEL_RADIUS; j++)
-        {
-            sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X + j];
-        }
-
         if (imageW - baseX > i * ROWS_BLOCKDIM_X)
         {
-        	d_Dst[i * ROWS_BLOCKDIM_X] = sum;
-        }
+			float sum = 0;
+
+	#pragma unroll
+
+			for (int j = -KERNEL_RADIUS; j <= KERNEL_RADIUS; j++)
+			{
+				sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X + j];
+			}
+
+			d_Dst[i * ROWS_BLOCKDIM_X] = sum;
+		}
     }
 }
 
@@ -267,21 +277,39 @@ __global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     //Compute and store results
     __syncthreads();
-#pragma unroll
+
+    // this pixel is not part of the image and does not need to be convolved
+    if ( baseX >= imageW )
+    	return;
 
     for (int i = COLUMNS_HALO_STEPS; i < COLUMNS_HALO_STEPS + COLUMNS_RESULT_STEPS; i++)
     {
-        float sum = 0;
-#pragma unroll
-
-        for (int j = -KERNEL_RADIUS; j <= KERNEL_RADIUS; j++)
-        {
-            sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y + j];
-        }
-
         if (imageH - baseY > i * COLUMNS_BLOCKDIM_Y)
         {
-        	d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = sum;
+			float sum = 0;
+
+		#pragma unroll
+
+			for (int j = -KERNEL_RADIUS; j <= KERNEL_RADIUS; j++)
+			{
+				sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y + j];
+			}
+
+    		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = sum;
+
+    		/*
+        	if ( outofbounds == 0 )
+        		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = blockIdx.x;//sum;
+        	else if ( outofbounds == 1 )
+        		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = blockIdx.y;//sum;
+        	else if ( outofbounds == 2 )
+        		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = 257+blockIdx.z;//sum;
+        	else if ( outofbounds == 3 )
+        		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = baseX;//sum;
+        	else if ( outofbounds == 4 )
+        		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = baseY;//sum;
+        	else if ( outofbounds == 5 )
+        		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = baseZ;//sum;*/
         }
     }
 }
@@ -343,20 +371,23 @@ __global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 
     //Compute and store results
     __syncthreads();
-#pragma unroll
+
+    // this pixel is not part of the image and does not need to be convolved
+    if ( baseX >= imageW )
+    	return;
 
     for (int i = DEPTH_HALO_STEPS; i < DEPTH_HALO_STEPS + DEPTH_RESULT_STEPS; i++)
     {
-        float sum = 0;
-#pragma unroll
-
-        for (int j = -KERNEL_RADIUS; j <= KERNEL_RADIUS; j++)
-        {
-            sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z + j];
-        }
-
         if (imageD - baseZ > i * DEPTH_BLOCKDIM_Z)
         {
+			float sum = 0;
+	#pragma unroll
+
+			for (int j = -KERNEL_RADIUS; j <= KERNEL_RADIUS; j++)
+			{
+				sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.x][threadIdx.z + i * DEPTH_BLOCKDIM_Z + j];
+			}
+
         	d_Dst[i * DEPTH_BLOCKDIM_Z * imageW * imageH] = sum;
         }
     }
