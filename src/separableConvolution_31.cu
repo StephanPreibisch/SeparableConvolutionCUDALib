@@ -16,7 +16,7 @@ void setConvolutionKernel_31( float *h_Kernel )
 // how many threads per block in x (total num threads: x*y)
 #define	ROWS_BLOCKDIM_X 16
 // how many threads per block in y
-#define	ROWS_BLOCKDIM_Y 4
+#define	ROWS_BLOCKDIM_Y 16
 // how many pixels in x are convolved by each thread
 #define	ROWS_RESULT_STEPS 8
 // these are the border pixels (loaded to support the kernel width for processing)
@@ -88,8 +88,6 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
 		in = 1;
     }
 
-    HANDLE_ERROR( cudaDeviceSynchronize() );
-
     if ( convolveY != 0 )
     {
     	setConvolutionKernel_31( kernelY );
@@ -105,8 +103,6 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
     		in = 0;
     	}
     }
-
-    HANDLE_ERROR( cudaDeviceSynchronize() );
 
     if ( convolveZ != 0 )
     {
@@ -203,6 +199,8 @@ __global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     if ( baseY >= imageH )
     	return;
 
+#pragma unroll
+
     for (int i = ROWS_HALO_STEPS; i < ROWS_HALO_STEPS + ROWS_RESULT_STEPS; i++)
     {
         if (imageW - baseX > i * ROWS_BLOCKDIM_X)
@@ -282,6 +280,8 @@ __global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     if ( baseX >= imageW )
     	return;
 
+#pragma unroll
+
     for (int i = COLUMNS_HALO_STEPS; i < COLUMNS_HALO_STEPS + COLUMNS_RESULT_STEPS; i++)
     {
         if (imageH - baseY > i * COLUMNS_BLOCKDIM_Y)
@@ -296,20 +296,6 @@ __global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
 			}
 
     		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = sum;
-
-    		/*
-        	if ( outofbounds == 0 )
-        		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = blockIdx.x;//sum;
-        	else if ( outofbounds == 1 )
-        		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = blockIdx.y;//sum;
-        	else if ( outofbounds == 2 )
-        		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = 257+blockIdx.z;//sum;
-        	else if ( outofbounds == 3 )
-        		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = baseX;//sum;
-        	else if ( outofbounds == 4 )
-        		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = baseY;//sum;
-        	else if ( outofbounds == 5 )
-        		d_Dst[i * COLUMNS_BLOCKDIM_Y * imageW] = baseZ;//sum;*/
         }
     }
 }
@@ -376,11 +362,14 @@ __global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, 
     if ( baseX >= imageW )
     	return;
 
+#pragma unroll
+
     for (int i = DEPTH_HALO_STEPS; i < DEPTH_HALO_STEPS + DEPTH_RESULT_STEPS; i++)
     {
         if (imageD - baseZ > i * DEPTH_BLOCKDIM_Z)
         {
 			float sum = 0;
+
 	#pragma unroll
 
 			for (int j = -KERNEL_RADIUS; j <= KERNEL_RADIUS; j++)
