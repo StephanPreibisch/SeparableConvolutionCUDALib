@@ -8,7 +8,7 @@
 
 __constant__ float c_Kernel[ KERNEL_LENGTH ];
 
-void setConvolutionKernel( float *h_Kernel )
+void setConvolutionKernel_31( float *h_Kernel )
 {
     cudaMemcpyToSymbol( c_Kernel, h_Kernel, KERNEL_LENGTH * sizeof(float) );
 }
@@ -34,7 +34,7 @@ void setConvolutionKernel( float *h_Kernel )
 #define	DEPTH_RESULT_STEPS 8
 #define	DEPTH_HALO_STEPS 1
 
-__global__ void convolutionX_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
+__global__ void convolutionX_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
     __shared__ float s_Data[ROWS_BLOCKDIM_Y][(ROWS_RESULT_STEPS + 2 * ROWS_HALO_STEPS) * ROWS_BLOCKDIM_X];
 
@@ -117,7 +117,7 @@ __global__ void convolutionX_Kernel( float *d_Dst, float *d_Src, int imageW, int
     }
 }
 
-__global__ void convolutionY_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
+__global__ void convolutionY_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
     __shared__ float s_Data[COLUMNS_BLOCKDIM_X][(COLUMNS_RESULT_STEPS + 2 * COLUMNS_HALO_STEPS) * COLUMNS_BLOCKDIM_Y + 1];
 
@@ -198,7 +198,7 @@ __global__ void convolutionY_Kernel( float *d_Dst, float *d_Src, int imageW, int
     }
 }
 
-__global__ void convolutionZ_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
+__global__ void convolutionZ_31_Kernel( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
 	// here it is [x][z], we leave out y as it has a size of 1
     __shared__ float s_Data[DEPTH_BLOCKDIM_X][(DEPTH_RESULT_STEPS + 2 * DEPTH_HALO_STEPS) * DEPTH_BLOCKDIM_Z + 1];
@@ -280,7 +280,7 @@ __global__ void convolutionZ_Kernel( float *d_Dst, float *d_Src, int imageW, int
     }
 }
 
-void convolutionX( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
+void convolutionX_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
 	int blocksX = imageW / (ROWS_RESULT_STEPS * ROWS_BLOCKDIM_X) + imin( 1, imageW % (ROWS_RESULT_STEPS * ROWS_BLOCKDIM_X) );
 	int blocksY = imageH / ROWS_BLOCKDIM_Y + imin( 1, imageH % ROWS_BLOCKDIM_Y );
@@ -289,10 +289,10 @@ void convolutionX( float *d_Dst, float *d_Src, int imageW, int imageH, int image
     dim3 blocks(blocksX, blocksY, blocksZ);
     dim3 threads(ROWS_BLOCKDIM_X, ROWS_BLOCKDIM_Y, 1);
 
-    convolutionX_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD, outofbounds, outofboundsvalue );
+    convolutionX_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD, outofbounds, outofboundsvalue );
 }
 
-void convolutionY( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
+void convolutionY_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
 	int blocksX = imageW / COLUMNS_BLOCKDIM_X + imin( 1, imageW % COLUMNS_BLOCKDIM_X );
 	int blocksY = imageH / (COLUMNS_RESULT_STEPS * COLUMNS_BLOCKDIM_Y) + imin( 1, imageH % (COLUMNS_RESULT_STEPS * COLUMNS_BLOCKDIM_Y) );
@@ -301,10 +301,10 @@ void convolutionY( float *d_Dst, float *d_Src, int imageW, int imageH, int image
     dim3 blocks(blocksX, blocksY, blocksZ);
     dim3 threads(COLUMNS_BLOCKDIM_X, COLUMNS_BLOCKDIM_Y, 1);
 
-    convolutionY_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD, outofbounds, outofboundsvalue );
+    convolutionY_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD, outofbounds, outofboundsvalue );
 }
 
-void convolutionZ( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
+void convolutionZ_31( float *d_Dst, float *d_Src, int imageW, int imageH, int imageD, int outofbounds, float outofboundsvalue )
 {
 	int blocksX = imageW / DEPTH_BLOCKDIM_X + imin(1, imageW % DEPTH_BLOCKDIM_X);
 	int blocksY = imageH;
@@ -313,7 +313,7 @@ void convolutionZ( float *d_Dst, float *d_Src, int imageW, int imageH, int image
     dim3 blocks(blocksX, blocksY, blocksZ);
     dim3 threads(DEPTH_BLOCKDIM_X, 1, DEPTH_BLOCKDIM_Z);
 
-    convolutionZ_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD, outofbounds, outofboundsvalue );
+    convolutionZ_31_Kernel<<<blocks, threads>>>( d_Dst, d_Src, imageW, imageH, imageD, outofbounds, outofboundsvalue );
 }
 
 extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, int convolveX, int convolveY, int convolveZ, int outofbounds, float outofboundsvalue, int devCUDA )
@@ -352,39 +352,39 @@ extern "C" int convolve_31( float *image, float *kernelX, float *kernelY, float 
 
     if ( convolveX != 0 )
     {
-		setConvolutionKernel( kernelX );
-	    convolutionX( d_Output, d_Input, imageW, imageH, imageD, outofbounds, outofboundsvalue );
+		setConvolutionKernel_31( kernelX );
+	    convolutionX_31( d_Output, d_Input, imageW, imageH, imageD, outofbounds, outofboundsvalue );
 		in = 1;
     }
 
     if ( convolveY != 0 )
     {
-    	setConvolutionKernel( kernelY );
+    	setConvolutionKernel_31( kernelY );
 
     	if ( in == 0 )
     	{
-    		convolutionY( d_Output, d_Input, imageW, imageH, imageD, outofbounds, outofboundsvalue );
+    		convolutionY_31( d_Output, d_Input, imageW, imageH, imageD, outofbounds, outofboundsvalue );
     		in = 1;
     	}
     	else
     	{
-    		convolutionY( d_Input, d_Output, imageW, imageH, imageD, outofbounds, outofboundsvalue );
+    		convolutionY_31( d_Input, d_Output, imageW, imageH, imageD, outofbounds, outofboundsvalue );
     		in = 0;
     	}
     }
 
     if ( convolveZ != 0 )
     {
-		setConvolutionKernel( kernelZ );
+		setConvolutionKernel_31( kernelZ );
 
 		if ( in == 0 )
 		{
-			convolutionZ( d_Output, d_Input, imageW, imageH, imageD, outofbounds, outofboundsvalue );
+			convolutionZ_31( d_Output, d_Input, imageW, imageH, imageD, outofbounds, outofboundsvalue );
 			in = 1;
 		}
 		else
 		{
-			convolutionZ( d_Input, d_Output, imageW, imageH, imageD, outofbounds, outofboundsvalue );
+			convolutionZ_31( d_Input, d_Output, imageW, imageH, imageD, outofbounds, outofboundsvalue );
 			in = 0;
 		}
     }
