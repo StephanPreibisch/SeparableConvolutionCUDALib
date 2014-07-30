@@ -28,6 +28,17 @@ static void HandleError( cudaError_t err,
     }
 }
 
+static bool HandleErrorNoCrash( cudaError_t err,
+                         const char *file,
+                         int line ) {
+    if (err != cudaSuccess) {
+        printf( "%s in %s at line %d\n", cudaGetErrorString( err ),
+                file, line );
+        return false;
+    }
+    return true;
+}
+
 static int imax( int a, int b )
 {
 	if ( a > b )
@@ -47,6 +58,8 @@ static int imin( int a, int b )
 #define HANDLE_ERROR_KERNEL HandleError(cudaPeekAtLastError(),__FILE__, __LINE__ )
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
+
+#define HANDLE_ERROR_NOCRASH( err ) ( HandleErrorNoCrash( err, __FILE__, __LINE__ ) )
 
 #define HANDLE_NULL( a ) {if (a == NULL) { \
                             printf( "Host memory failed in %s at line %d\n", \

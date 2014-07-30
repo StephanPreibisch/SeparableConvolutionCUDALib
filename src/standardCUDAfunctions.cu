@@ -27,7 +27,9 @@ int getCUDAcomputeCapabilityMinorVersion(int devCUDA)
 int getNumDevicesCUDA()
 {
 	int count = 0;
-	HANDLE_ERROR(cudaGetDeviceCount ( &count ));
+	if ( !HANDLE_ERROR_NOCRASH(cudaGetDeviceCount ( &count )) )
+		return -1;
+
 	return count;
 }
 void getNameDeviceCUDA(int devCUDA, char* name)
