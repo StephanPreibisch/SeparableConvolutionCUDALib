@@ -318,6 +318,37 @@ void convolutionZ_15( float *d_Dst, float *d_Src, int imageW, int imageH, int im
 
 extern "C" int convolve_15( float *image, float *kernelX, float *kernelY, float *kernelZ, int imageW, int imageH, int imageD, int convolveX, int convolveY, int convolveZ, int outofbounds, float outofboundsvalue, int devCUDA )
 {
+	if ( devCUDA < 0 )
+	{
+		fprintf(stderr, "Cuda device '%i' is smaller 0 indicating to compute it on the CPU, doing that now (slow, not multithreaded)\n", devCUDA );
+
+		int kx = KERNEL_LENGTH;
+		int ky = KERNEL_LENGTH;
+		int kz = KERNEL_LENGTH;
+
+		if ( convolveX == 0 )
+		{
+			kx = 1;
+			kernelX[ 0 ] = 1;
+		}
+
+		if ( convolveY == 0 )
+		{
+			ky = 1;
+			kernelY[ 0 ] = 1;
+		}
+
+		if ( convolveZ == 0 )
+		{
+			kz = 1;
+			kernelZ[ 0 ] = 1;
+		}
+
+		convolutionCPU( image, kernelX, kernelY, kernelZ, kx, ky, kz, imageW, imageH, imageD, outofbounds, outofboundsvalue );
+
+		return -1;
+	}
+
 	//fprintf(stderr, "Cuda device: %i\n", devCUDA );
 
 	//fprintf(stderr, "Convolving X: %i\n", convolveX );
