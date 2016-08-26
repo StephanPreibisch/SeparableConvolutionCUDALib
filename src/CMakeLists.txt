@@ -1,0 +1,25 @@
+# include directories
+# src directory
+INCLUDE_DIRECTORIES(.)
+
+# build and link
+FIND_PACKAGE(CUDA QUIET)
+CUDA_ADD_LIBRARY(${PROJECT_NAME} separableConvolution_255.cu separableConvolution_127.cu separableConvolution_63.cu separableConvolution_31.cu separableConvolution_15.cu separableConvolution_7.cu standardCUDAfunctions.cu SHARED)
+CUDA_ADD_CUFFT_TO_TARGET(${PROJECT_NAME})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} cuda)
+
+IF(APPLE)
+MESSAGE("adding ${CUDA_TOOLKIT_ROOT_DIR}/lib/libcuda.dylib")
+   TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${CUDA_TOOLKIT_ROOT_DIR}/lib/libcuda.dylib)
+ ENDIF(APPLE)
+
+
+SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${PROJECT_SOURCE_DIR}/src/separableConvolution.h") 
+INSTALL(TARGETS ${PROJECT_NAME}
+  EXPORT separableconvolutioncudalib-targets 
+  LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
+  PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}" COMPONENT inc)
+
+
+
+
